@@ -40,7 +40,6 @@ int main() {
         {
             #pragma omp for
             for (int i = 0; i < 1000000; i++) {
-                std::cout << i << std::endl;
                 hash_table.search(i);
             }
         }
