@@ -15,10 +15,15 @@ public:
     ~Node();
 };
 
+struct PaddedLock {
+    omp_lock_t lock;
+    char padding[64 - sizeof(omp_lock_t)]; 
+};
+
 class HashTable {
 private:
     Node *buckets[TABLE_SIZE];
-    omp_lock_t locks[TABLE_SIZE];
+    PaddedLock locks[TABLE_SIZE];
 
     unsigned int hash(const int key);
 

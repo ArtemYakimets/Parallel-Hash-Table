@@ -29,13 +29,13 @@ void HashTable::clear() {
 HashTable::HashTable() {
     for (int i = 0; i < TABLE_SIZE; i++) {
         buckets[i] = nullptr;
-        omp_init_lock(&locks[i]);
+        omp_init_lock(&locks[i].lock);
     }
 }
 
 HashTable::~HashTable() {
     for (int i = 0; i < TABLE_SIZE; i++) {
-        omp_destroy_lock(&locks[i]);
+        omp_destroy_lock(&locks[i].lock);
     }
     clear();
 }
@@ -43,7 +43,7 @@ HashTable::~HashTable() {
 void HashTable::insert(const int key, const int value) {
     unsigned int index = hash(key);
 
-    omp_set_lock(&locks[index]);
+    omp_set_lock(&locks[index].lock);
     Node *new_node = new Node(key, value);
 
     if (!buckets[index]) {
@@ -54,7 +54,7 @@ void HashTable::insert(const int key, const int value) {
             if (key == curr->key) {
                 curr->value = value;
                 delete new_node;
-                omp_unset_lock(&locks[index]);
+                omp_unset_lock(&locks[index].lock);
                 return;
             }
             curr = curr->next;
@@ -62,25 +62,25 @@ void HashTable::insert(const int key, const int value) {
         curr->next = new_node;
     }
 
-    omp_unset_lock(&locks[index]);
+    omp_unset_lock(&locks[index].lock);
 }
 
 int * HashTable::search(const int key) {
     int index = hash(key);
 
-    omp_set_lock(&locks[index]);
+    omp_set_lock(&locks[index].lock);
     Node *curr = buckets[index];
     
     while(curr) {
         if (curr->key == key) {
             int *result = &curr->value;
-            omp_unset_lock(&locks[index]);
+            omp_unset_lock(&locks[index].lock);
             return result;
         }
         curr = curr->next;
     }
 
-    omp_unset_lock(&locks[index]);
+    omp_unset_lock(&locks[index].lock);
     return nullptr;
 }
 
