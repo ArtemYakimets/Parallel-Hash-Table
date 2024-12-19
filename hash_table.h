@@ -1,6 +1,7 @@
 #pragma once
 
 #define TABLE_SIZE 10000
+#define NUM_LOCKS 400
 
 namespace htb {
 
@@ -23,9 +24,11 @@ struct PaddedLock {
 class HashTable {
 private:
     Node *buckets[TABLE_SIZE];
-    PaddedLock locks[TABLE_SIZE];
+    PaddedLock locks[NUM_LOCKS];
 
     unsigned int hash(const int key);
+
+    unsigned int lock_index(const int key);
 
     void clear();
 

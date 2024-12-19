@@ -8,11 +8,13 @@ Node::Node(const int key, const int value) : key(key), value(value), next(nullpt
 
 Node::~Node() {}
 
-
-
 unsigned int HashTable::hash(const int key) {
         return key % TABLE_SIZE;
     }
+
+unsigned int HashTable::lock_index(const int key) {
+    return key % NUM_LOCKS;
+}
 
 void HashTable::clear() {
     for (int i = 0; i < TABLE_SIZE; ++i) {
@@ -29,12 +31,15 @@ void HashTable::clear() {
 HashTable::HashTable() {
     for (int i = 0; i < TABLE_SIZE; i++) {
         buckets[i] = nullptr;
+    }
+
+    for (int i = 0; i < NUM_LOCKS; ++i) {
         omp_init_lock(&locks[i].lock);
     }
 }
 
 HashTable::~HashTable() {
-    for (int i = 0; i < TABLE_SIZE; i++) {
+    for (int i = 0; i < NUM_LOCKS; i++) {
         omp_destroy_lock(&locks[i].lock);
     }
     clear();
@@ -42,8 +47,9 @@ HashTable::~HashTable() {
 
 void HashTable::insert(const int key, const int value) {
     unsigned int index = hash(key);
+    unsigned int lk_index = lock_index(key);
 
-    omp_set_lock(&locks[index].lock);
+    omp_set_lock(&locks[lk_index].lock);
     Node *new_node = new Node(key, value);
 
     if (!buckets[index]) {
@@ -54,7 +60,7 @@ void HashTable::insert(const int key, const int value) {
             if (key == curr->key) {
                 curr->value = value;
                 delete new_node;
-                omp_unset_lock(&locks[index].lock);
+                omp_unset_lock(&locks[lk_index].lock);
                 return;
             }
             curr = curr->next;
@@ -62,25 +68,26 @@ void HashTable::insert(const int key, const int value) {
         curr->next = new_node;
     }
 
-    omp_unset_lock(&locks[index].lock);
+    omp_unset_lock(&locks[lk_index].lock);
 }
 
 int * HashTable::search(const int key) {
     int index = hash(key);
+    unsigned int lk_index = lock_index(key);
 
-    omp_set_lock(&locks[index].lock);
+    omp_set_lock(&locks[lk_index].lock);
     Node *curr = buckets[index];
     
     while(curr) {
         if (curr->key == key) {
             int *result = &curr->value;
-            omp_unset_lock(&locks[index].lock);
+            omp_unset_lock(&locks[lk_index].lock);
             return result;
         }
         curr = curr->next;
     }
 
-    omp_unset_lock(&locks[index].lock);
+    omp_unset_lock(&locks[lk_index].lock);
     return nullptr;
 }
 
