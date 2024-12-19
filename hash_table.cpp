@@ -54,6 +54,7 @@ void HashTable::insert(const int key, const int value) {
             if (key == curr->key) {
                 curr->value = value;
                 delete new_node;
+                omp_unset_lock(&locks[index]);
                 return;
             }
             curr = curr->next;
@@ -72,7 +73,9 @@ int * HashTable::search(const int key) {
     
     while(curr) {
         if (curr->key == key) {
-            return &curr->value;
+            int *result = &curr->value;
+            omp_unset_lock(&locks[index]);
+            return result;
         }
         curr = curr->next;
     }
