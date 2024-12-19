@@ -1,4 +1,5 @@
 #include <iostream>
+#include <omp.h>
 #include "hash_table.h"
 
 namespace htb {
@@ -28,15 +29,21 @@ void HashTable::clear() {
 HashTable::HashTable() {
     for (int i = 0; i < TABLE_SIZE; i++) {
         buckets[i] = nullptr;
+        omp_init_lock(&locks[i]);
     }
 }
 
 HashTable::~HashTable() {
+    for (int i = 0; i < TABLE_SIZE; i++) {
+        omp_destroy_lock(&locks[i]);
+    }
     clear();
 }
 
 void HashTable::insert(const int key, const int value) {
     unsigned int index = hash(key);
+
+    omp_set_lock(&locks[index]);
     Node *new_node = new Node(key, value);
 
     if (!buckets[index]) {
@@ -53,11 +60,14 @@ void HashTable::insert(const int key, const int value) {
         }
         curr->next = new_node;
     }
+
+    omp_unset_lock(&locks[index]);
 }
 
 int * HashTable::search(const int key) {
     int index = hash(key);
 
+    omp_set_lock(&locks[index]);
     Node *curr = buckets[index];
     
     while(curr) {
@@ -66,6 +76,8 @@ int * HashTable::search(const int key) {
         }
         curr = curr->next;
     }
+
+    omp_unset_lock(&locks[index]);
     return nullptr;
 }
 

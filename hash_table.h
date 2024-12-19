@@ -1,6 +1,6 @@
 #pragma once
 
-#define TABLE_SIZE 10
+#define TABLE_SIZE 10000
 
 namespace htb {
 
@@ -18,6 +18,7 @@ public:
 class HashTable {
 private:
     Node *buckets[TABLE_SIZE];
+    omp_lock_t locks[TABLE_SIZE];
 
     unsigned int hash(const int key);
 
